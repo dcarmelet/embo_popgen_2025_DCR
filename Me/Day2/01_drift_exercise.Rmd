@@ -1,0 +1,214 @@
+---
+title: Genetic Drift
+output: html_document
+---
+
+# Expected allele frequency with genetic drift
+
+## (1) Over one generation
+
+We assume to have 50 diploid individuals and an allele frequency of 0.50.
+
+```{r}
+N <- 50
+fA <- 0.5
+```
+
+A binomial distribution models the sampling with replacement of gene copies. The next cells illustrate how to perform a random sampling from a binomial distribution with 2N samples and probability of "success" equal to $f_A$. Since we are interested in frequencies and not counts, we then divide by 2N.
+
+```{r}
+rbinom(1, 2*N, fA) / (2*N)
+```
+
+```{r}
+rbinom(1, 2*N, 0.53) / (2*N)
+```
+
+**EXERCISE** How do we calculate the expected allele frequency at the next generation? We can repeat the experiment many times and calculate the average value, then...
+
+Each group could use a different initial allele frequency or sample size.
+
+```{r}
+# 
+
+fA<-rbinom(1, 2*N, fA) / (2*N)
+
+```
+
+```{r}
+# 
+```
+
+What do these results suggest? Does the expected allele frequency change or not after one generation? Do allele frequencies change or not after one generation?
+
+Prove that your conclusions stay the same if you vary the initial allele frequency and/or sample size.
+
+## (2) Over many generations
+
+Scenario similar to above, but with a starting allele frequency of 0.50, 50 diploid individuals and 100 generations.
+
+```{r}
+N <- 50
+# 100 generations
+fA <- rep(NA, 1000)
+# at t=0
+fA[1] <- 0.50
+```
+
+We repeat the sampling procedure at each generation.
+
+```{r}
+for (t in 1:999) fA[t+1] <- rbinom(1, 2*N, fA[t]) / (2*N)
+```
+
+```{r}
+plot(x=1:1000, y=fA, type="l", ylim=c(0,1), lwd=2)
+```
+
+Wasn't the expected allele frequency supposed not to change after each generation? What's happening?
+
+Let's assume that we repeat the whole history for 100 generations many times (i.e. 20) and record the trajectories of the allele frequency.
+
+```{r}
+par(mfrow=c(5,4))
+N <-  100
+gen <-  1000
+nrepl <- 100
+
+Mat<-matrix(nrow = nrepl,ncol = gen)
+
+for (j in 1:nrepl) {
+  fA <- rep(NA, 1000)
+  fA[1] <- 0.50
+  for (t in 1:999) fA[t+1] <- rbinom(1, 2*N, fA[t]) / (2*N)
+  Mat[j,]<-fA
+}
+Res<-as.data.frame(t(Mat))
+library(ggplot2)
+library(reshape2)
+Res_m<-melt(Res)
+Res_m$Index<-rep(c(1:gen),nrepl)
+ggplot(Res_m)+geom_line(aes(y=value,x=Index,col=variable),alpha=.2)+scale_color_discrete(guide="none")+theme_bw()
+```
+
+\
+
+**EXERCISE** Plot a couple of replicates of the allele frequency trajectory.
+
+What is the chance that an allele at 50% at time 0 goes to fixation (100%) or is lost (0%)? To answer this question run the experiment above over more generations and more replicates and see what happens. Calculate the proportion of alleles that are fixed or lost at the end of your experiment. What happens if you change the initial allele frequency? Do these proportions change?
+
+```{r}
+N <-  100
+gen <-  50
+nrepl <- 1000
+G <- rep(NA, nrepl)
+for (j in 1:nrepl) {
+  fA <- rep(NA, 1000)
+  fA[1] <- 0.50
+  for (t in 1:999) fA[t+1] <- rbinom(1, 2*N, fA[t]) / (2*N)
+  
+  
+  
+  
+  
+  if (fA[gen]==1) {
+    G[j]<-1
+  } else if (fA[gen]==0) {
+     G[j]<-0
+  } else {
+     G[j]<-2
+  }
+}
+
+table(G)/1000
+```
+
+## (3) Effect of population size
+
+Let's consider the effect of population size on the drift process.
+
+**EXERCISE** Repeat the experiment above (2) for different population sizes. For instance, run two sets of experiments varying $N$.
+
+Which population experiences more drift?
+
+```{r}
+
+#Small population
+N <-  10
+gen <-  100
+nrepl <- 10
+G <- rep(NA, nrepl)
+for (j in 1:nrepl) {
+  fA <- rep(NA, gen)
+  fA[1] <- 0.50
+  for (t in 1:99) fA[t+1] <- rbinom(1, 2*N, fA[t]) / (2*N)
+    if (j==1) {
+    plot(x=1:gen, y=fA, type="l", ylim=c(0,1), lwd=2,col="red")
+  }else {lines(x=1:gen, y=fA, type="l", ylim=c(0,1), lwd=2,col="red")}
+  
+  
+  if (fA[gen]==1) {
+    G[j]<-1
+  } else if (fA[gen]==0) {
+     G[j]<-0
+  } else {
+     G[j]<-2
+  }
+}
+
+table(G)/1000
+
+
+
+#Large population
+N <-  1000
+gen <-  100
+nrepl <- 10
+G <- rep(NA, nrepl)
+for (j in 1:nrepl) {
+  fA <- rep(NA, gen)
+  fA[1] <- 0.50
+  for (t in 1:99) fA[t+1] <- rbinom(1, 2*N, fA[t]) / (2*N)
+  lines(x=1:gen, y=fA, type="l", ylim=c(0,1), lwd=2,col="blue")
+  
+  if (fA[gen]==1) {
+    G[j]<-1
+  } else if (fA[gen]==0) {
+     G[j]<-0
+  } else {
+     G[j]<-2
+  }
+}
+
+table(G)/1000
+```
+
+Which population experiences more drift? Change the values of population sizes and confirm that your general statement is still true.
+
+```{r}
+Res<-matrix(nrow = 100,ncol = 100)
+nrepl <- 10
+for (N in 1:100) {
+  for (gen in 1:100) {
+    print(c(N,gen))
+    for (j in 1:nrepl) {
+  fA <- rep(NA, 1000)
+  fA[1] <- 0.50
+  for (t in 1:999) fA[t+1] <- rbinom(1, 2*N, fA[t]) / (2*N)
+  if (fA[gen]==1) {
+    G[j]<-1
+  } else if (fA[gen]==0) {
+     G[j]<-0
+  } else {
+     G[j]<-2
+  }
+     Res[N,gen]<-length((G[G==2]))/1000
+  }
+}
+}
+
+image(Res)
+
+
+
+```
